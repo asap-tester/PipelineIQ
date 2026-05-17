@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PipelineIQ — Your Job Search Has a Score</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ─── RESET ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  /* ─── TOKENS ─────────────────────────────────────────── */
+  :root {
+    --bg: #0a0a0f;
+    --surface: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.08);
+    --border-focus: rgba(6,182,212,0.5);
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6,182,212,0.15);
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --orange: #f97316;
+    --red: #ef4444;
+    --grey: #6b7280;
+    --text: #f0f0f5;
+    --text-muted: #8b8b9e;
+    --text-dim: #4b4b5e;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --font-display: 'Barlow Condensed', sans-serif;
+    --font-body: 'Manrope', sans-serif;
+  }
+
+  /* ─── BASE ────────────────────────────────────────────── */
+  html { scroll-behavior: smooth; }
+  
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 15% 40%, rgba(6,182,212,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 70%, rgba(6,182,212,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── LAYOUT ──────────────────────────────────────────── */
+  #app {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 120px;
+  }
+
+  /* ─── GLASS CARD ──────────────────────────────────────── */
+  .card {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* ─── HEADER ──────────────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeSlideDown 0.5s ease forwards;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--cyan); }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ─── HEALTH SCORE RING ───────────────────────────────── */
+  .score-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeSlideDown 0.6s ease 0.15s forwards;
+  }
+
+  .score-ring-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+
+  .score-ring-wrap svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+  }
+
+  .ring-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.06);
+    stroke-width: 10;
+  }
+
+  .ring-fill {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1), stroke 0.4s ease;
+  }
+
+  .score-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .score-number {
+    font-family: var(--font-display);
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    transition: color 0.4s ease;
+  }
+
+  .score-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .score-band {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 99px;
+    border: 1px solid currentColor;
+  }
+
+  /* ─── STATS BAR ───────────────────────────────────────── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeSlideDown 0.6s ease 0.3s forwards;
+  }
+
+  .stat-card {
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--cyan);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.3;
+  }
+
+  /* ─── DO TODAY ────────────────────────────────────────── */
+  .do-today {
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeSlideDown 0.6s ease 0.45s forwards;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: var(--radius);
+    transition: background 0.2s;
+  }
+
+  .section-header:hover { background: rgba(255,255,255,0.03); }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-badge {
+    background: var(--cyan);
+    color: #000;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-family: var(--font-body);
+  }
+
+  .chevron {
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+    font-size: 18px;
+  }
+
+  .chevron.open { transform: rotate(180deg); }
+
+  .do-today-list {
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.4s ease, padding 0.3s ease;
+  }
+
+  .do-today-list.open {
+    max-height: 600px;
+    padding: 0 12px 14px;
+  }
+
+  .action-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    animation: pulse-action 3s ease-in-out infinite;
+  }
+
+  .action-item:hover {
+    background: rgba(6,182,212,0.06);
+    border-color: rgba(6,182,212,0.2);
+    transform: translateX(3px);
+  }
+
+  .action-company {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .action-role {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+
+  .action-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .tag-follow { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+  .tag-checkin { background: rgba(6,182,212,0.12); color: var(--cyan); border: 1px solid rgba(6,182,212,0.25); }
+  .tag-update { background: rgba(107,114,128,0.15); color: var(--grey); border: 1px solid rgba(107,114,128,0.3); }
+
+  .no-actions {
+    text-align: center;
+    padding: 20px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* ─── APPLICATION LIST ────────────────────────────────── */
+  .apps-section {
+    opacity: 0;
+    animation: fadeSlideDown 0.6s ease 0.6s forwards;
+  }
+
+  .apps-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+
+  .apps-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    padding: 4px 12px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .filter-btn.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+
+  .app-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ─── APPLICATION CARD ────────────────────────────────── */
+  .app-card {
+    padding: 16px;
+    position: relative;
+    border-left-width: 3px;
+    border-left-style: solid;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.3s ease, margin-left 0.3s ease;
+    cursor: default;
+  }
+
+  .app-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
+
+  .app-card.removing {
+    transform: translateX(-100%);
+    opacity: 0;
+    margin-bottom: -78px;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .card-company {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+
+  .card-role {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .icon-btn:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+  .icon-btn.delete:hover { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.1); }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .stage-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .flag-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    letter-spacing: 0.04em;
+  }
+
+  .date-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  .card-notes {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+
+  /* Status border colours */
+  .border-emerald { border-left-color: var(--emerald); }
+  .border-cyan { border-left-color: var(--cyan); }
+  .border-amber { border-left-color: var(--amber); }
+  .border-orange { border-left-color: var(--orange); }
+  .border-grey { border-left-color: var(--grey); }
+  .border-red { border-left-color: var(--red); }
+
+  /* Stage pills */
+  .pill-applied { background: rgba(107,114,128,0.15); color: var(--grey); }
+  .pill-screening { background: rgba(6,182,212,0.12); color: var(--cyan); }
+  .pill-interview { background: rgba(6,182,212,0.2); color: var(--cyan); }
+  .pill-final { background: rgba(16,185,129,0.15); color: var(--emerald); }
+  .pill-offer { background: rgba(16,185,129,0.2); color: var(--emerald); }
+  .pill-rejected { background: rgba(239,68,68,0.12); color: var(--red); }
+  .pill-ghosted { background: rgba(107,114,128,0.12); color: var(--grey); }
+
+  /* Flag pills */
+  .flag-warm { background: rgba(6,182,212,0.1); color: var(--cyan); }
+  .flag-cooling { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .flag-cold { background: rgba(107,114,128,0.12); color: var(--grey); }
+  .flag-won { background: rgba(16,185,129,0.15); color: var(--emerald); }
+  .flag-closed { background: rgba(239,68,68,0.1); color: var(--red); }
+  .flag-active { background: rgba(16,185,129,0.1); color: var(--emerald); }
+
+  /* ─── EMPTY STATE ─────────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+
+  .empty-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+
+  .empty-sub { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ─── FAB ─────────────────────────────────────────────── */
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 22px;
+    background: var(--cyan);
+    color: #000;
+    border: none;
+    border-radius: 99px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(6,182,212,0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(6,182,212,0.5);
+  }
+
+  .fab:active { transform: scale(0.97); }
+
+  /* ─── MODAL ───────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 560px;
+    border-radius: 24px 24px 0 0;
+    padding: 28px 24px 40px;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    background: #12121c;
+    border: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .modal-overlay.open .modal {
+    transform: translateY(0);
+  }
+
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 99px;
+    margin: 0 auto 24px;
+  }
+
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  input, select, textarea {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    background: rgba(6,182,212,0.04);
+  }
+
+  select option { background: #1a1a28; color: var(--text); }
+
+  textarea { resize: none; min-height: 70px; line-height: 1.5; }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    padding: 13px;
+    background: var(--cyan);
+    color: #000;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .btn-ghost {
+    padding: 13px 20px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* ─── CONFIRM DIALOG ──────────────────────────────────── */
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .confirm-overlay.open { opacity: 1; pointer-events: all; }
+
+  .confirm-box {
+    background: #16161f;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    max-width: 340px;
+    width: 100%;
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .confirm-overlay.open .confirm-box { transform: scale(1); }
+
+  .confirm-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .confirm-sub { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
+
+  .confirm-actions { display: flex; gap: 10px; }
+
+  .btn-danger {
+    flex: 1;
+    padding: 11px;
+    background: rgba(239,68,68,0.15);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+  /* ─── ANIMATIONS ──────────────────────────────────────── */
+  @keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse-action {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 0 3px rgba(6,182,212,0.08); }
+  }
+
+  @keyframes cardEntrance {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── DESKTOP ─────────────────────────────────────────── */
+  @media (min-width: 768px) {
+    #app {
+      padding: 32px 24px 60px;
+    }
+
+    .desktop-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .left-col {
+      position: sticky;
+      top: 24px;
+    }
+
+    .modal {
+      border-radius: 20px;
+      margin: 20px;
+    }
+    
+    .modal-overlay {
+      align-items: center;
+    }
+
+    .stats-bar {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .stats-bar {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- HEADER -->
+  <header class="header">
+    <div>
+      <div class="logo">Pipeline<span>IQ</span></div>
+    </div>
+    <div class="header-sub">Job Search Intelligence</div>
+  </header>
+
+  <div class="desktop-layout">
+    <!-- LEFT COLUMN (score + stats + do today) -->
+    <div class="left-col">
+      <!-- HEALTH SCORE RING -->
+      <div class="score-section">
+        <div class="score-ring-wrap">
+          <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+            <circle class="ring-track" cx="80" cy="80" r="68"/>
+            <circle class="ring-fill" id="ringFill" cx="80" cy="80" r="68"
+              stroke-dasharray="427.26"
+              stroke-dashoffset="427.26"/>
+          </svg>
+          <div class="score-inner">
+            <div class="score-number" id="scoreNum">0</div>
+            <div class="score-label">Pipeline Health</div>
+          </div>
+        </div>
+        <div class="score-band" id="scoreBand">—</div>
+      </div>
+
+      <!-- STATS BAR -->
+      <div class="stats-bar">
+        <div class="card stat-card">
+          <div class="stat-number" id="statTotal">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-number" id="statActive">0</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-number" id="statInterviews">0</div>
+          <div class="stat-label">Interviews</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-number" id="statResponse">0%</div>
+          <div class="stat-label">Response Rate</div>
+        </div>
+      </div>
+
+      <!-- DO TODAY -->
+      <div class="card do-today">
+        <div class="section-header" id="doTodayToggle">
+          <div class="section-title">
+            Do Today
+            <span class="section-badge" id="doTodayCount">0</span>
+          </div>
+          <span class="chevron open" id="doTodayChevron">▾</span>
+        </div>
+        <div class="do-today-list open" id="doTodayList">
+          <div class="no-actions" id="noActions">All caught up ✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN (application list) -->
+    <div class="apps-section">
+      <div class="apps-header">
+        <div class="apps-title">Applications</div>
+        <div class="filter-row" id="filterRow">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="active">Active</button>
+          <button class="filter-btn" data-filter="interview">Interviews</button>
+          <button class="filter-btn" data-filter="closed">Closed</button>
+        </div>
+      </div>
+      <div class="app-list" id="appList">
+        <!-- cards injected here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn">
+  <span>+</span> Add Application
+</button>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal card">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">New Application</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="fieldCompany">Company</label>
+        <input type="text" id="fieldCompany" placeholder="e.g. Accenture" maxlength="80">
+      </div>
+      <div class="form-field">
+        <label for="fieldRole">Role / Position</label>
+        <input type="text" id="fieldRole" placeholder="e.g. Graduate Analyst" maxlength="80">
+      </div>
+      <div class="form-field">
+        <label for="fieldDate">Date Applied</label>
+        <input type="date" id="fieldDate">
+      </div>
+      <div class="form-field">
+        <label for="fieldStage">Current Stage</label>
+        <select id="fieldStage">
+          <option value="Applied">Applied</option>
+          <option value="Screening">Screening</option>
+          <option value="Interview">Interview</option>
+          <option value="Final Round">Final Round</option>
+          <option value="Offer">Offer</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Ghosted">Ghosted</option>
+        </select>
+      </div>
+      <div class="form-field full">
+        <label for="fieldNotes">Notes (optional)</label>
+        <textarea id="fieldNotes" placeholder="Any context, contacts, follow-up info…"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalCancel">Cancel</button>
+      <button class="btn-primary" id="modalSave">Save Application</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">Delete application?</div>
+    <div class="confirm-sub" id="confirmSub">This will permanently remove this application from your pipeline.</div>
+    <div class="confirm-actions">
+      <button class="btn-ghost" id="confirmCancel" style="flex:1">Keep it</button>
+      <button class="btn-danger" id="confirmDelete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PIPELINEIQ — Core Application Logic
+   ═══════════════════════════════════════════════════════ */
+
+const STORAGE_KEY = 'pipelineiq_apps';
+let apps = [];
+let editingId = null;
+let deletingId = null;
+let activeFilter = 'all';
+let doTodayOpen = true;
+
+/* ── UTILITIES ──────────────────────────────────────── */
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const today = () => new Date().toISOString().split('T')[0];
+
+function daysSince(dateStr) {
+  if (!dateStr) return 0;
+  const diff = new Date() - new Date(dateStr);
+  return Math.floor(diff / 86400000);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/* ── STATUS LOGIC ────────────────────────────────────── */
+function computeFlag(app) {
+  const stage = app.stage;
+  if (stage === 'Offer') return 'won';
+  if (stage === 'Rejected' || stage === 'Ghosted') return 'closed';
+  const days = daysSince(app.dateApplied);
+  if (days >= 21) return 'cold';
+  if (days >= 14) return 'cooling';
+  if (days >= 7)  return 'warm';
+  return 'active';
+}
+
+const FLAG_LABELS = {
+  won: 'Won 🎉', closed: 'Closed', cold: 'Cold', cooling: 'Cooling', warm: 'Warm', active: 'Active'
+};
+
+const FLAG_CLASSES = {
+  won: 'flag-won', closed: 'flag-closed', cold: 'flag-cold',
+  cooling: 'flag-cooling', warm: 'flag-warm', active: 'flag-active'
+};
+
+const BORDER_CLASSES = {
+  won: 'border-emerald', closed: 'border-grey', cold: 'border-grey',
+  cooling: 'border-amber', warm: 'border-cyan', active: 'border-emerald'
+};
+
+// Override border for specific stages
+function getBorderClass(app) {
+  if (app.stage === 'Rejected') return 'border-red';
+  return BORDER_CLASSES[computeFlag(app)] || 'border-grey';
+}
+
+function isActive(app) {
+  const s = app.stage;
+  return !['Rejected','Ghosted','Offer'].includes(s);
+}
+
+/* ── HEALTH SCORE ────────────────────────────────────── */
+function computeScore() {
+  const total = apps.length;
+  if (total === 0) return 0;
+
+  const active = apps.filter(isActive);
+  const activeCount = active.length;
+
+  // base: active proportion × 40
+  const base = (activeCount / total) * 40;
+
+  // recency: active apps updated (dateApplied) in last 7 days × 30
+  // We treat "last activity" as the most recent of dateApplied (proxy; stage changes counted as updates)
+  const recentlyActive = active.filter(a => daysSince(a.lastUpdated || a.dateApplied) <= 7).length;
+  const recency = activeCount > 0 ? (recentlyActive / activeCount) * 30 : 0;
+
+  // stage: interviews + finals + offers / active × 30
+  const advanced = apps.filter(a => ['Interview','Final Round','Offer'].includes(a.stage)).length;
+  const stage = activeCount > 0 ? (advanced / activeCount) * 30 : 0;
+
+  return Math.min(100, Math.round(base + recency + stage));
+}
+
+function scoreBand(score) {
+  if (score >= 75) return { label: 'Healthy',          color: '#10b981' };
+  if (score >= 50) return { label: 'Needs Attention',  color: '#f59e0b' };
+  if (score >= 25) return { label: 'Stalling',         color: '#f97316' };
+  return               { label: 'Critical',            color: '#ef4444' };
+}
+
+/* ── STORAGE ─────────────────────────────────────────── */
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    apps = raw ? JSON.parse(raw) : [];
+  } catch { apps = []; }
+}
+
+/* ── RENDER — HEALTH RING ────────────────────────────── */
+const CIRCUMFERENCE = 2 * Math.PI * 68; // 427.26
+
+function renderScore(animated = false) {
+  const score = computeScore();
+  const band  = scoreBand(score);
+  const fill  = CIRCUMFERENCE * (1 - score / 100);
+
+  const ring     = document.getElementById('ringFill');
+  const scoreNum = document.getElementById('scoreNum');
+  const scoreBandEl = document.getElementById('scoreBand');
+
+  ring.style.stroke = band.color;
+  scoreBandEl.textContent = band.label;
+  scoreBandEl.style.color = band.color;
+  scoreBandEl.style.borderColor = band.color;
+  document.getElementById('scoreNum').style.color = band.color;
+
+  if (animated) {
+    // Animate ring from 0
+    ring.style.strokeDashoffset = CIRCUMFERENCE;
+    scoreNum.textContent = '0';
+    
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        ring.style.strokeDashoffset = fill;
+        countUp(scoreNum, 0, score, 1200);
+      }, 50);
+    });
+  } else {
+    ring.style.strokeDashoffset = fill;
+    scoreNum.textContent = score;
+  }
+}
+
+/* ── RENDER — STATS BAR ──────────────────────────────── */
+function renderStats(animated = false) {
+  const total      = apps.length;
+  const active     = apps.filter(isActive).length;
+  const interviews = apps.filter(a => ['Interview','Final Round','Offer'].includes(a.stage)).length;
+  const responded  = apps.filter(a => a.stage !== 'Applied').length;
+  const rate       = total > 0 ? Math.round((responded / total) * 100) : 0;
+
+  const elTotal  = document.getElementById('statTotal');
+  const elActive = document.getElementById('statActive');
+  const elInter  = document.getElementById('statInterviews');
+  const elRate   = document.getElementById('statResponse');
+
+  if (animated) {
+    countUp(elTotal, 0, total, 900);
+    setTimeout(() => countUp(elActive, 0, active, 900), 80);
+    setTimeout(() => countUp(elInter, 0, interviews, 900), 160);
+    setTimeout(() => {
+      countUp(elRate, 0, rate, 900, '%');
+    }, 240);
+  } else {
+    elTotal.textContent  = total;
+    elActive.textContent = active;
+    elInter.textContent  = interviews;
+    elRate.textContent   = rate + '%';
+  }
+}
+
+/* ── RENDER — DO TODAY ───────────────────────────────── */
+function renderDoToday() {
+  const list   = document.getElementById('doTodayList');
+  const badge  = document.getElementById('doTodayCount');
+  const noAct  = document.getElementById('noActions');
+  const actions = [];
+
+  apps.forEach(app => {
+    const flag = computeFlag(app);
+    const days = daysSince(app.lastUpdated || app.dateApplied);
+
+    if (!isActive(app)) return;
+
+    // Cooling → Follow up
+    if (flag === 'cooling') {
+      actions.push({ app, tag: 'Follow Up', cls: 'tag-follow' });
+      return;
+    }
+    // Interview/Final with no update in 5+ days → Check in
+    if (['Interview','Final Round'].includes(app.stage) && days >= 5) {
+      actions.push({ app, tag: 'Check In', cls: 'tag-checkin' });
+      return;
+    }
+    // No stage update in 3 days → Update stage
+    if (days >= 3 && flag !== 'cold') {
+      actions.push({ app, tag: 'Update Stage', cls: 'tag-update' });
+    }
+  });
+
+  badge.textContent = actions.length;
+  noAct.style.display = actions.length === 0 ? 'block' : 'none';
+
+  // Remove old action items
+  list.querySelectorAll('.action-item').forEach(el => el.remove());
+
+  actions.forEach(({ app, tag, cls }) => {
+    const item = document.createElement('div');
+    item.className = 'action-item';
+    item.innerHTML = `
+      <div>
+        <div class="action-company">${esc(app.company)}</div>
+        <div class="action-role">${esc(app.role)}</div>
+      </div>
+      <span class="action-tag ${cls}">${tag}</span>
+    `;
+    item.addEventListener('click', () => openEdit(app.id));
+    list.appendChild(item);
+  });
+}
+
+/* ── RENDER — APPLICATION CARDS ──────────────────────── */
+function getFilteredApps() {
+  if (activeFilter === 'active')    return apps.filter(isActive);
+  if (activeFilter === 'interview') return apps.filter(a => ['Interview','Final Round','Offer'].includes(a.stage));
+  if (activeFilter === 'closed')    return apps.filter(a => ['Rejected','Ghosted'].includes(a.stage));
+  return apps;
+}
+
+function stagePillClass(stage) {
+  const map = {
+    'Applied':     'pill-applied',
+    'Screening':   'pill-screening',
+    'Interview':   'pill-interview',
+    'Final Round': 'pill-final',
+    'Offer':       'pill-offer',
+    'Rejected':    'pill-rejected',
+    'Ghosted':     'pill-ghosted',
+  };
+  return map[stage] || 'pill-applied';
+}
+
+function renderApps() {
+  const list     = document.getElementById('appList');
+  const filtered = getFilteredApps();
+  list.innerHTML = '';
+
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div class="card empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No applications yet</div>
+        <div class="empty-sub">Tap "+ Add Application" to log your first one.<br>Your pipeline score will update instantly.</div>
+      </div>`;
+    return;
+  }
+
+  filtered.forEach((app, i) => {
+    const flag   = computeFlag(app);
+    const border = getBorderClass(app);
+    const days   = daysSince(app.dateApplied);
+
+    const card = document.createElement('div');
+    card.className = `card app-card ${border}`;
+    card.id = `card-${app.id}`;
+    card.style.animationDelay = `${i * 0.04}s`;
+    card.style.animation = 'cardEntrance 0.4s ease forwards';
+    card.style.opacity = '0';
+
+    card.innerHTML = `
+      <div class="card-top">
+        <div>
+          <div class="card-company">${esc(app.company)}</div>
+          <div class="card-role">${esc(app.role)}</div>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn" title="Edit" onclick="openEdit('${app.id}')">✎</button>
+          <button class="icon-btn delete" title="Delete" onclick="openDelete('${app.id}')">✕</button>
+        </div>
+      </div>
+      <div class="card-meta">
+        <span class="stage-pill ${stagePillClass(app.stage)}">${app.stage}</span>
+        <span class="flag-pill ${FLAG_CLASSES[flag]}">${FLAG_LABELS[flag]}</span>
+        <span class="date-meta">${days === 0 ? 'Today' : days === 1 ? '1 day ago' : days + ' days ago'}</span>
+      </div>
+      ${app.notes ? `<div class="card-notes">${esc(app.notes)}</div>` : ''}
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+/* ── FULL RENDER ──────────────────────────────────────── */
+function renderAll(animated = false) {
+  renderScore(animated);
+  renderStats(animated);
+  renderDoToday();
+  renderApps();
+}
+
+/* ── COUNT-UP ANIMATION ──────────────────────────────── */
+function countUp(el, from, to, duration, suffix = '') {
+  const start = performance.now();
+  const step = (now) => {
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+    el.textContent = Math.round(from + (to - from) * ease) + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ── ESCAPE HTML ──────────────────────────────────────── */
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── MODAL — OPEN/CLOSE ──────────────────────────────── */
+function openAdd() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Application';
+  document.getElementById('modalSave').textContent = 'Save Application';
+  document.getElementById('fieldCompany').value = '';
+  document.getElementById('fieldRole').value = '';
+  document.getElementById('fieldDate').value = today();
+  document.getElementById('fieldStage').value = 'Applied';
+  document.getElementById('fieldNotes').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('fieldCompany').focus();
+}
+
+function openEdit(id) {
+  const app = apps.find(a => a.id === id);
+  if (!app) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Application';
+  document.getElementById('modalSave').textContent = 'Update Application';
+  document.getElementById('fieldCompany').value = app.company;
+  document.getElementById('fieldRole').value = app.role;
+  document.getElementById('fieldDate').value = app.dateApplied;
+  document.getElementById('fieldStage').value = app.stage;
+  document.getElementById('fieldNotes').value = app.notes || '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingId = null;
+}
+
+/* ── MODAL — SAVE ────────────────────────────────────── */
+function saveApp() {
+  const company = document.getElementById('fieldCompany').value.trim();
+  const role    = document.getElementById('fieldRole').value.trim();
+  const date    = document.getElementById('fieldDate').value;
+  const stage   = document.getElementById('fieldStage').value;
+  const notes   = document.getElementById('fieldNotes').value.trim();
+
+  if (!company || !role || !date) {
+    // Basic validation — highlight missing
+    if (!company) document.getElementById('fieldCompany').focus();
+    else if (!role) document.getElementById('fieldRole').focus();
+    return;
+  }
+
+  if (editingId) {
+    const idx = apps.findIndex(a => a.id === editingId);
+    if (idx !== -1) {
+      const prev = apps[idx];
+      apps[idx] = {
+        ...prev, company, role, dateApplied: date, stage, notes,
+        lastUpdated: (prev.stage !== stage) ? today() : (prev.lastUpdated || prev.dateApplied)
+      };
+    }
+  } else {
+    apps.push({
+      id: uid(), company, role,
+      dateApplied: date, stage, notes,
+      lastUpdated: date
+    });
+  }
+
+  save();
+  closeModal();
+  renderAll();
+}
+
+/* ── DELETE ──────────────────────────────────────────── */
+function openDelete(id) {
+  deletingId = id;
+  const app = apps.find(a => a.id === id);
+  if (app) {
+    document.getElementById('confirmSub').textContent =
+      `"${app.company} — ${app.role}" will be permanently removed.`;
+  }
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function confirmDeleteApp() {
+  const card = document.getElementById(`card-${deletingId}`);
+  if (card) {
+    card.classList.add('removing');
+    setTimeout(() => finishDelete(), 320);
+  } else {
+    finishDelete();
+  }
+}
+
+function finishDelete() {
+  apps = apps.filter(a => a.id !== deletingId);
+  deletingId = null;
+  save();
+  document.getElementById('confirmOverlay').classList.remove('open');
+  renderAll();
+}
+
+function cancelDelete() {
+  deletingId = null;
+  document.getElementById('confirmOverlay').classList.remove('open');
+}
+
+/* ── DO TODAY TOGGLE ─────────────────────────────────── */
+function toggleDoToday() {
+  doTodayOpen = !doTodayOpen;
+  document.getElementById('doTodayList').classList.toggle('open', doTodayOpen);
+  document.getElementById('doTodayChevron').classList.toggle('open', doTodayOpen);
+}
+
+/* ── FILTER ──────────────────────────────────────────── */
+document.getElementById('filterRow').addEventListener('click', (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  renderApps();
+});
+
+/* ── EVENT WIRING ────────────────────────────────────── */
+document.getElementById('fabBtn').addEventListener('click', openAdd);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalSave').addEventListener('click', saveApp);
+document.getElementById('doTodayToggle').addEventListener('click', toggleDoToday);
+document.getElementById('confirmCancel').addEventListener('click', cancelDelete);
+document.getElementById('confirmDelete').addEventListener('click', confirmDeleteApp);
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+// Close confirm on overlay click
+document.getElementById('confirmOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('confirmOverlay')) cancelDelete();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal();
+    cancelDelete();
+  }
+  if ((e.key === 'Enter') && document.getElementById('modalOverlay').classList.contains('open')) {
+    if (document.activeElement.tagName !== 'TEXTAREA') saveApp();
+  }
+});
+
+/* ── INIT ────────────────────────────────────────────── */
+load();
+
+// Staggered entrance: score ring first
+setTimeout(() => renderAll(true), 100);
+
+// Demo data if empty (first visit)
+if (apps.length === 0) {
+  const demoApps = [
+    { id: uid(), company: 'Deloitte', role: 'Graduate Consultant', dateApplied: offsetDate(-5), stage: 'Screening', notes: 'Referred by campus rep', lastUpdated: offsetDate(-5) },
+    { id: uid(), company: 'KPMG', role: 'Audit Associate', dateApplied: offsetDate(-16), stage: 'Interview', notes: 'First round on Zoom', lastUpdated: offsetDate(-8) },
+    { id: uid(), company: 'Standard Bank', role: 'Finance Graduate', dateApplied: offsetDate(-22), stage: 'Applied', notes: '', lastUpdated: offsetDate(-22) },
+    { id: uid(), company: 'Accenture', role: 'Technology Analyst', dateApplied: offsetDate(-3), stage: 'Applied', notes: 'Applied via LinkedIn', lastUpdated: offsetDate(-3) },
+    { id: uid(), company: 'PwC', role: 'Assurance Graduate', dateApplied: offsetDate(-30), stage: 'Ghosted', notes: '', lastUpdated: offsetDate(-30) },
+  ];
+  apps = demoApps;
+  save();
+  setTimeout(() => renderAll(true), 120);
+}
+
+function offsetDate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+</script>
+</body>
+</html>
