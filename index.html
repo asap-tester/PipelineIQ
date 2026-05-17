@@ -382,7 +382,7 @@
     position: relative;
     border-left-width: 3px;
     border-left-style: solid;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.3s ease, margin-left 0.3s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.3s ease, margin-left 0.3s ease, margin-bottom 0.3s ease;
     cursor: default;
   }
 
@@ -581,6 +581,8 @@
   .modal {
     width: 100%;
     max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
     border-radius: 24px 24px 0 0;
     padding: 28px 24px 40px;
     transform: translateY(100%);
@@ -588,6 +590,7 @@
     background: #12121c;
     border: 1px solid var(--border);
     border-bottom: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-overlay.open .modal {
@@ -747,6 +750,12 @@
   }
 
   .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+  @media (max-width: 480px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 
   /* ─── ANIMATIONS ──────────────────────────────────────── */
   @keyframes fadeSlideDown {
@@ -964,8 +973,11 @@ const today = () => new Date().toISOString().split('T')[0];
 
 function daysSince(dateStr) {
   if (!dateStr) return 0;
-  const diff = new Date() - new Date(dateStr);
-  return Math.floor(diff / 86400000);
+  const d = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = today - d;
+  return Math.max(0, Math.floor(diff / 86400000));
 }
 
 function formatDate(dateStr) {
@@ -1008,7 +1020,7 @@ function getBorderClass(app) {
 
 function isActive(app) {
   const s = app.stage;
-  return !['Rejected','Ghosted','Offer'].includes(s);
+  return !['Rejected', 'Ghosted'].includes(s);
 }
 
 /* ── HEALTH SCORE ────────────────────────────────────── */
@@ -1139,8 +1151,8 @@ function renderDoToday() {
       actions.push({ app, tag: 'Check In', cls: 'tag-checkin' });
       return;
     }
-    // No stage update in 3 days → Update stage
-    if (days >= 3 && flag !== 'cold') {
+    // No stage update in 3 days → Update stage (skip if won)
+    if (days >= 3 && flag !== 'cold' && flag !== 'won') {
       actions.push({ app, tag: 'Update Stage', cls: 'tag-update' });
     }
   });
@@ -1261,8 +1273,11 @@ function countUp(el, from, to, duration, suffix = '') {
 function esc(str) {
   if (!str) return '';
   return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /* ── MODAL — OPEN/CLOSE ──────────────────────────────── */
@@ -1317,9 +1332,11 @@ function saveApp() {
     const idx = apps.findIndex(a => a.id === editingId);
     if (idx !== -1) {
       const prev = apps[idx];
+      const hasDateChanged = prev.dateApplied !== date;
+      const hasStageChanged = prev.stage !== stage;
       apps[idx] = {
         ...prev, company, role, dateApplied: date, stage, notes,
-        lastUpdated: (prev.stage !== stage) ? today() : (prev.lastUpdated || prev.dateApplied)
+        lastUpdated: (hasStageChanged || hasDateChanged) ? today() : (prev.lastUpdated || prev.dateApplied)
       };
     }
   } else {
@@ -1416,24 +1433,31 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ── INIT ────────────────────────────────────────────── */
-load();
+function init() {
+  load();
 
-// Staggered entrance: score ring first
-setTimeout(() => renderAll(true), 100);
+  const isFirstVisit = !localStorage.getItem('pipelineiq_initialized');
 
-// Demo data if empty (first visit)
-if (apps.length === 0) {
-  const demoApps = [
-    { id: uid(), company: 'Deloitte', role: 'Graduate Consultant', dateApplied: offsetDate(-5), stage: 'Screening', notes: 'Referred by campus rep', lastUpdated: offsetDate(-5) },
-    { id: uid(), company: 'KPMG', role: 'Audit Associate', dateApplied: offsetDate(-16), stage: 'Interview', notes: 'First round on Zoom', lastUpdated: offsetDate(-8) },
-    { id: uid(), company: 'Standard Bank', role: 'Finance Graduate', dateApplied: offsetDate(-22), stage: 'Applied', notes: '', lastUpdated: offsetDate(-22) },
-    { id: uid(), company: 'Accenture', role: 'Technology Analyst', dateApplied: offsetDate(-3), stage: 'Applied', notes: 'Applied via LinkedIn', lastUpdated: offsetDate(-3) },
-    { id: uid(), company: 'PwC', role: 'Assurance Graduate', dateApplied: offsetDate(-30), stage: 'Ghosted', notes: '', lastUpdated: offsetDate(-30) },
-  ];
-  apps = demoApps;
-  save();
-  setTimeout(() => renderAll(true), 120);
+  if (apps.length === 0 && isFirstVisit) {
+    const demoApps = [
+      { id: uid(), company: 'Deloitte', role: 'Graduate Consultant', dateApplied: offsetDate(-5), stage: 'Screening', notes: 'Referred by campus rep', lastUpdated: offsetDate(-5) },
+      { id: uid(), company: 'KPMG', role: 'Audit Associate', dateApplied: offsetDate(-16), stage: 'Interview', notes: 'First round on Zoom', lastUpdated: offsetDate(-8) },
+      { id: uid(), company: 'Standard Bank', role: 'Finance Graduate', dateApplied: offsetDate(-22), stage: 'Applied', notes: '', lastUpdated: offsetDate(-22) },
+      { id: uid(), company: 'Accenture', role: 'Technology Analyst', dateApplied: offsetDate(-3), stage: 'Applied', notes: 'Applied via LinkedIn', lastUpdated: offsetDate(-3) },
+      { id: uid(), company: 'PwC', role: 'Assurance Graduate', dateApplied: offsetDate(-30), stage: 'Ghosted', notes: '', lastUpdated: offsetDate(-30) },
+    ];
+    apps = demoApps;
+    save();
+    localStorage.setItem('pipelineiq_initialized', 'true');
+  } else if (isFirstVisit) {
+    localStorage.setItem('pipelineiq_initialized', 'true');
+  }
+
+  // Staggered entrance
+  setTimeout(() => renderAll(true), 100);
 }
+
+init();
 
 function offsetDate(days) {
   const d = new Date();
