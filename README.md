@@ -1,5 +1,5 @@
 # PipelineIQ
->> Your job search has a score. Time to see it.
+> Your job search has a score. Time to see it.
 
 ## The Problem
 Most job seekers manage 10–30 active applications across notes, emails, and memory. There is no tool that tells you which applications are going cold, which need a follow-up today, or whether your overall pipeline is healthy or stalling.
